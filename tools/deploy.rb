@@ -38,16 +38,11 @@ jenkins_job_uri = URI.parse("#{jenkins_url}#{jenkins_job_path}")
 
 # Get temporary AWS credentials
 puts 'Requesting temporary AWS credentials...'
-`govukcli set-context #{environment}`
-env = `govukcli aws invoke printenv`
+
+aws_credentials_string = `govuk aws --profile govuk-#{environment} --export-json`
 abort('Could not get temporary AWS credentials') unless $?.exitstatus.zero?
 
-# Set up the environment variables for the temporary AWS credentials
-aws_credential_env_vars = %w(AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN).freeze
-env.each_line do |env_var|
-  key, value = env_var.split('=')
-  ENV[key] = value.chomp if aws_credential_env_vars.include?(key)
-end
+aws_credentials = JSON.parse(aws_credentials_string)
 
 # Get a Jenkins "crumb" to authenticate the next request
 puts 'Requesting Jenkins crumb...'
@@ -71,9 +66,9 @@ jenkins_job_http.use_ssl = true
 jenkins_job_request = Net::HTTP::Post.new(jenkins_job_uri.path)
 jenkins_job_request.basic_auth(ENV['GITHUB_USERNAME'], ENV['GITHUB_TOKEN'])
 jenkins_job_request.set_form_data({
-  'AWS_ACCESS_KEY_ID' => ENV['AWS_ACCESS_KEY_ID'],
-  'AWS_SECRET_ACCESS_KEY' => ENV['AWS_SECRET_ACCESS_KEY'],
-  'AWS_SESSION_TOKEN' => ENV['AWS_SESSION_TOKEN'],
+  'AWS_ACCESS_KEY_ID' => aws_credentials['access_key_id'],
+  'AWS_SECRET_ACCESS_KEY' => aws_credentials['secret_access_key'],
+  'AWS_SESSION_TOKEN' => aws_credentials['session_token'],
   'COMMAND' => command,
   'ENVIRONMENT' => environment,
   'STACKNAME' => stack,
