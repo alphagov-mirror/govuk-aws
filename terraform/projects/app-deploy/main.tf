@@ -31,7 +31,7 @@ variable "instance_ami_filter_name" {
 }
 
 variable "elb_external_certname" {
-  type        = "string"
+  type        = "list"
   description = "The ACM cert domain name to find the ARN of"
 }
 
@@ -51,6 +51,31 @@ variable "remote_state_infra_artefact_bucket_key_stack" {
   default     = ""
 }
 
+variable "external_zone_name" {
+  type        = "string"
+  description = "The name of the Route53 zone that contains external records"
+}
+
+variable "external_domain_name" {
+  type        = "string"
+  description = "The domain name of the external DNS records, it could be different from the zone name"
+}
+
+variable "internal_zone_name" {
+  type        = "string"
+  description = "The name of the Route53 zone that contains internal records"
+}
+
+variable "internal_domain_name" {
+  type        = "string"
+  description = "The domain name of the internal DNS records, it could be different from the zone name"
+}
+
+variable "enable_public_alb" {
+  description = "Enable the use of ALBs for public access or use original ELB resources instead"
+  default     = false
+}
+
 # Resources
 # --------------------------------------------------------------
 terraform {
@@ -66,7 +91,7 @@ data "terraform_remote_state" "artefact_bucket" {
   config {
     bucket = "${var.remote_state_bucket}"
     key    = "${coalesce(var.remote_state_infra_artefact_bucket_key_stack, var.stackname)}/infra-artefact-bucket.tfstate"
-    region = "eu-west-1"
+    region = "${var.aws_region}"
   }
 }
 
@@ -75,12 +100,40 @@ provider "aws" {
   version = "1.40.0"
 }
 
+locals {
+  common_tags = {
+    Project         = "${var.stackname}"
+    aws_environment = "${var.aws_environment}"
+    aws_migration   = "jenkins"
+    aws_stackname   = "${var.stackname}"
+  }
+}
+
+data "aws_route53_zone" "external" {
+  name         = "${var.external_zone_name}"
+  private_zone = false
+}
+
+data "aws_route53_zone" "internal" {
+  name         = "${var.internal_zone_name}"
+  private_zone = true
+}
+
 data "aws_acm_certificate" "elb_external_cert" {
-  domain   = "${var.elb_external_certname}"
+  count = "${length(var.elb_external_certname)}"
+
+  domain   = "${var.elb_external_certname[count.index]}"
+  statuses = ["ISSUED"]
+}
+
+data "aws_acm_certificate" "elb_internal_cert" {
+  domain   = "${var.elb_internal_certname}"
   statuses = ["ISSUED"]
 }
 
 resource "aws_elb" "deploy_elb" {
+  count = "${var.enable_public_alb ? 0 : 1}"
+
   name            = "${var.stackname}-deploy"
   subnets         = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
   security_groups = ["${data.terraform_remote_state.infra_security_groups.sg_deploy_elb_id}"]
@@ -98,7 +151,7 @@ resource "aws_elb" "deploy_elb" {
     lb_port           = 443
     lb_protocol       = "https"
 
-    ssl_certificate_id = "${data.aws_acm_certificate.elb_external_cert.arn}"
+    ssl_certificate_id = "${data.aws_acm_certificate.elb_external_cert.0.arn}"
   }
 
   health_check {
@@ -115,12 +168,7 @@ resource "aws_elb" "deploy_elb" {
   connection_draining         = true
   connection_draining_timeout = 400
 
-  tags = "${map("Name", "${var.stackname}-deploy", "Project", var.stackname, "aws_environment", var.aws_environment, "aws_migration", "jenkins")}"
-}
-
-data "aws_acm_certificate" "elb_internal_cert" {
-  domain   = "${var.elb_internal_certname}"
-  statuses = ["ISSUED"]
+  tags = "${merge(local.common_tags, map("Name", "${var.stackname}-deploy"))}"
 }
 
 resource "aws_elb" "deploy_internal_elb" {
@@ -158,12 +206,74 @@ resource "aws_elb" "deploy_internal_elb" {
   connection_draining         = true
   connection_draining_timeout = 400
 
-  tags = "${map("Name", "${var.stackname}-deploy-internal", "Project", var.stackname, "aws_environment", var.aws_environment, "aws_migration", "jenkins")}"
+  tags = "${merge(local.common_tags, map("Name", "${var.stackname}-deploy-internal"))}"
+}
+
+resource "aws_lb" "deploy_public" {
+  count = "${var.enable_public_alb}"
+
+  name            = "${var.stackname}-deploy-public"
+  internal        = "false"
+  security_groups = ["${data.terraform_remote_state.infra_security_groups.sg_deploy_elb_id}"]
+  subnets         = ["${data.terraform_remote_state.infra_networking.public_subnet_ids}"]
+
+  access_logs {
+    enabled = true
+    bucket  = "${data.terraform_remote_state.infra_monitoring.aws_logging_bucket_id}"
+    prefix  = "elb/${var.stackname}-deploy-public-elb"
+  }
+
+  tags = "${merge(local.common_tags, map("Name", "${var.stackname}-deploy-public"))}"
+}
+
+resource "aws_lb_listener" "deploy_public" {
+  count = "${var.enable_public_alb}"
+
+  load_balancer_arn = "${aws_lb.deploy_public.arn}"
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = "${data.aws_acm_certificate.elb_external_cert.0.arn}"
+
+  default_action {
+    target_group_arn = "${aws_lb_target_group.deploy_public.arn}"
+    type             = "forward"
+  }
+}
+
+resource "aws_lb_listener_certificate" "deploy_public_secondary" {
+  count = "${var.enable_public_alb ? length(var.elb_external_certname) - 1 : 0}"
+
+  listener_arn    = "${aws_lb_listener.deploy_public.arn}"
+  certificate_arn = "${data.aws_acm_certificate.elb_external_cert.*.arn[count.index + 1]}"
+}
+
+resource "aws_lb_target_group" "deploy_public" {
+  count = "${var.enable_public_alb}"
+
+  port                 = "80"
+  protocol             = "HTTP"
+  vpc_id               = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  deregistration_delay = "300"
+
+  health_check {
+    interval            = 30
+    path                = "/_healthcheck"
+    matcher             = "200"
+    port                = "80"
+    protocol            = "HTTP"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+  }
+
+  tags = "${merge(local.common_tags, map("Name", "${var.stackname}-deploy-public-HTTP-80"))}"
 }
 
 resource "aws_route53_record" "service_record" {
-  zone_id = "${data.terraform_remote_state.infra_stack_dns_zones.external_zone_id}"
-  name    = "deploy.${data.terraform_remote_state.infra_stack_dns_zones.external_domain_name}"
+  count = "${var.enable_public_alb ? 0 : 1}"
+
+  zone_id = "${data.aws_route53_zone.external.zone_id}"
+  name    = "deploy.${var.external_domain_name}"
   type    = "A"
 
   alias {
@@ -174,8 +284,8 @@ resource "aws_route53_record" "service_record" {
 }
 
 resource "aws_route53_record" "service_record_internal" {
-  zone_id = "${data.terraform_remote_state.infra_stack_dns_zones.internal_zone_id}"
-  name    = "deploy.${data.terraform_remote_state.infra_stack_dns_zones.internal_domain_name}"
+  zone_id = "${data.aws_route53_zone.internal.zone_id}"
+  name    = "deploy.${var.internal_domain_name}"
   type    = "A"
 
   alias {
@@ -185,19 +295,42 @@ resource "aws_route53_record" "service_record_internal" {
   }
 }
 
+resource "aws_route53_record" "service_record_public" {
+  count = "${var.enable_public_alb}"
+
+  zone_id = "${data.aws_route53_zone.external.zone_id}"
+  name    = "deploy.${var.external_domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = "${aws_lb.deploy_public.dns_name}"
+    zone_id                = "${aws_lb.deploy_public.zone_id}"
+    evaluate_target_health = true
+  }
+}
+
+locals {
+  instance_elb_ids_length           = "${var.enable_public_alb ? 1 : 2}"
+  instance_elb_ids                  = "${compact(list(join("", aws_elb.deploy_elb.*.id), aws_elb.deploy_internal_elb.id))}"
+  instance_target_group_arns_length = "${var.enable_public_alb ? 1 : 0}"
+  instance_target_group_arns        = "${compact(aws_lb_target_group.deploy_public.*.arn)}"
+}
+
 module "deploy" {
-  source                        = "../../modules/aws/node_group"
-  name                          = "${var.stackname}-deploy"
-  vpc_id                        = "${data.terraform_remote_state.infra_vpc.vpc_id}"
-  default_tags                  = "${map("Project", var.stackname, "aws_stackname", var.stackname, "aws_environment", var.aws_environment, "aws_migration", "jenkins", "aws_hostname", "jenkins-1")}"
-  instance_subnet_ids           = "${matchkeys(values(data.terraform_remote_state.infra_networking.private_subnet_names_ids_map), keys(data.terraform_remote_state.infra_networking.private_subnet_names_ids_map), list(var.deploy_subnet))}"
-  instance_security_group_ids   = ["${data.terraform_remote_state.infra_security_groups.sg_deploy_id}", "${data.terraform_remote_state.infra_security_groups.sg_management_id}"]
-  instance_type                 = "t2.medium"
-  instance_additional_user_data = "${join("\n", null_resource.user_data.*.triggers.snippet)}"
-  instance_elb_ids_length       = "2"
-  instance_elb_ids              = ["${aws_elb.deploy_elb.id}", "${aws_elb.deploy_internal_elb.id}"]
-  instance_ami_filter_name      = "${var.instance_ami_filter_name}"
-  asg_notification_topic_arn    = "${data.terraform_remote_state.infra_monitoring.sns_topic_autoscaling_group_events_arn}"
+  source                            = "../../modules/aws/node_group"
+  name                              = "${var.stackname}-deploy"
+  vpc_id                            = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  default_tags                      = "${merge(map("aws_hostname", "jenkins-1"), local.common_tags)}"
+  instance_subnet_ids               = "${matchkeys(values(data.terraform_remote_state.infra_networking.private_subnet_names_ids_map), keys(data.terraform_remote_state.infra_networking.private_subnet_names_ids_map), list(var.deploy_subnet))}"
+  instance_security_group_ids       = ["${data.terraform_remote_state.infra_security_groups.sg_deploy_id}", "${data.terraform_remote_state.infra_security_groups.sg_management_id}"]
+  instance_type                     = "t2.medium"
+  instance_elb_ids_length           = "${local.instance_elb_ids_length}"
+  instance_elb_ids                  = ["${local.instance_elb_ids}"]
+  instance_target_group_arns_length = "${local.instance_target_group_arns_length}"
+  instance_target_group_arns        = ["${local.instance_target_group_arns}"]
+  instance_additional_user_data     = "${join("\n", null_resource.user_data.*.triggers.snippet)}"
+  instance_ami_filter_name          = "${var.instance_ami_filter_name}"
+  asg_notification_topic_arn        = "${data.terraform_remote_state.infra_monitoring.sns_topic_autoscaling_group_events_arn}"
 }
 
 resource "aws_ebs_volume" "deploy" {
@@ -238,23 +371,44 @@ resource "aws_iam_role_policy_attachment" "allow_reads_from_artefact_bucket" {
   policy_arn = "${data.terraform_remote_state.artefact_bucket.read_artefact_bucket_policy_arn}"
 }
 
+locals {
+  elb_httpcode_backend_5xx_threshold      = "${var.enable_public_alb ? 0 : 50}"
+  elb_httpcode_elb_5xx_threshold          = "${var.enable_public_alb ? 0 : 50}"
+  alb_httpcode_target_5xx_count_threshold = "${var.enable_public_alb ? 80 : 0}"
+  alb_httpcode_elb_5xx_count_threshold    = "${var.enable_public_alb ? 80 : 0}"
+}
+
 module "alarms-elb-deploy-external" {
   source                         = "../../modules/aws/alarms/elb"
   name_prefix                    = "${var.stackname}-deploy-external"
   alarm_actions                  = ["${data.terraform_remote_state.infra_monitoring.sns_topic_cloudwatch_alarms_arn}"]
-  elb_name                       = "${aws_elb.deploy_elb.name}"
+  elb_name                       = "${join("", aws_elb.deploy_elb.*.name)}"
+  httpcode_backend_5xx_threshold = "${local.elb_httpcode_backend_5xx_threshold}"
+  httpcode_elb_5xx_threshold     = "${local.elb_httpcode_elb_5xx_threshold}"
   httpcode_backend_4xx_threshold = "0"
-  httpcode_backend_5xx_threshold = "50"
   httpcode_elb_4xx_threshold     = "0"
-  httpcode_elb_5xx_threshold     = "50"
   surgequeuelength_threshold     = "0"
   healthyhostcount_threshold     = "0"
+}
+
+module "alarms-alb-deploy-public" {
+  source                              = "../../modules/aws/alarms/alb"
+  name_prefix                         = "${var.stackname}-deploy-public"
+  alarm_actions                       = ["${data.terraform_remote_state.infra_monitoring.sns_topic_cloudwatch_alarms_arn}"]
+  alb_arn_suffix                      = "${join("", aws_lb.deploy_public.*.arn_suffix)}"
+  httpcode_target_5xx_count_threshold = "${local.alb_httpcode_target_5xx_count_threshold}"
+  httpcode_elb_5xx_count_threshold    = "${local.alb_httpcode_elb_5xx_count_threshold}"
 }
 
 # Outputs
 # --------------------------------------------------------------
 
 output "deploy_elb_dns_name" {
-  value       = "${aws_elb.deploy_elb.dns_name}"
+  value       = "${join("", aws_elb.deploy_elb.*.dns_name)}"
+  description = "DNS name to access the deploy service"
+}
+
+output "deploy_alb_dns_name" {
+  value       = "${join("", aws_lb.deploy_public.*.dns_name)}"
   description = "DNS name to access the deploy service"
 }
