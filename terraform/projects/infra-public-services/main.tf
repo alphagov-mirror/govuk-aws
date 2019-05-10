@@ -53,6 +53,12 @@ variable "backend_alb_blocked_host_headers" {
   default = []
 }
 
+variable "backend_lb_app_targets" {
+  type        = "list"
+  description = "LB rules based on Host header and target group health check: [name, host-header, protocol, port, health_check_path, health_check_matcher]"
+  default     = []
+}
+
 variable "backend_public_service_names" {
   type    = "list"
   default = []
@@ -532,6 +538,42 @@ resource "aws_lb_listener_rule" "backend_alb_blocked_host_headers" {
   condition {
     field  = "host-header"
     values = ["${element(var.backend_alb_blocked_host_headers, count.index)}"]
+  }
+}
+
+resource "aws_lb_target_group" "backend_lb_app_target" {
+  count                = "${length(var.backend_lb_app_targets) / 6 }"
+  name                 = "${var.stackname}-backend-public-${var.backend_lb_app_targets[(count.index * 6) + 0]}"
+  port                 = "${var.backend_lb_app_targets[(count.index * 6) + 3]}"
+  protocol             = "${var.backend_lb_app_targets[(count.index * 6) + 2]}"
+  vpc_id               = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  deregistration_delay = 300
+
+  health_check {
+    interval            = 30
+    path                = "${var.backend_lb_app_targets[(count.index * 6) + 4]}"
+    matcher             = "${var.backend_lb_app_targets[(count.index * 6) + 5]}"
+    port                = "traffic-port"
+    protocol            = "${var.backend_lb_app_targets[(count.index * 6) + 2]}"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_lb_app_rule" {
+  count        = "${length(var.backend_lb_app_targets) / 6 }"
+  listener_arn = "${module.backend_public_lb.load_balancer_ssl_listeners[0]}"
+  priority     = "${count.index + 1}"
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.backend_lb_app_target.*.arn[count.index]}"
+  }
+
+  condition {
+    field  = "host-header"
+    values = ["${var.backend_lb_app_targets[(count.index * 6) + 1]}"]
   }
 }
 

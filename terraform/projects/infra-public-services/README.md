@@ -20,6 +20,7 @@ This project adds global resources for app components:
 | backend_alb_blocked_host_headers |  | list | `<list>` | no |
 | backend_internal_service_cnames |  | list | `<list>` | no |
 | backend_internal_service_names |  | list | `<list>` | no |
+| backend_lb_app_targets | LB rules based on Host header and target group health check: [name, host-header, protocol, port, health_check_path, health_check_matcher] | list | `<list>` | no |
 | backend_public_service_cnames |  | list | `<list>` | no |
 | backend_public_service_names |  | list | `<list>` | no |
 | backend_redis_internal_service_names |  | list | `<list>` | no |
