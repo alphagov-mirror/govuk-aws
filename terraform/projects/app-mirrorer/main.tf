@@ -33,7 +33,7 @@ variable "instance_ami_filter_name" {
 variable "mirrorer_instance_type" {
   type        = "string"
   description = "Instance type for the mirrorer instance"
-  default     = "m5.large"
+  default     = "c5.4xlarge"
 }
 
 variable "mirrorer_subnet" {
@@ -75,7 +75,7 @@ module "mirrorer" {
 resource "aws_ebs_volume" "mirrorer" {
   availability_zone = "${lookup(data.terraform_remote_state.infra_networking.private_subnet_names_azs_map, var.mirrorer_subnet)}"
   encrypted         = "${var.ebs_encrypted}"
-  size              = 100
+  size              = 1000
   type              = "gp2"
 
   tags {
