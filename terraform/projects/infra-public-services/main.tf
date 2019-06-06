@@ -1247,6 +1247,17 @@ resource "aws_route53_record" "email_alert_api_public_service_names" {
   }
 }
 
+module "email_alert_api_public_lb_rules" {
+  source                 = "../../modules/aws/lb_listener_rules"
+  name                   = "email-alert-api"
+  autoscaling_group_name = "${data.aws_autoscaling_groups.email_alert_api.names[0]}"
+  rules_host_domain      = "*"
+  vpc_id                 = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  listener_arn           = "${module.email_alert_api_public_lb.load_balancer_ssl_listeners[0]}"
+  rules_host             = ["${compact(split(",", var.enable_lb_app_healthchecks ? join(",", var.email_alert_api_public_service_names) : ""))}"]
+  default_tags           = "${map("Project", var.stackname, "aws_migration", "email_alert_api", "aws_environment", var.aws_environment)}"
+}
+
 data "aws_autoscaling_groups" "email_alert_api" {
   filter {
     name   = "key"
