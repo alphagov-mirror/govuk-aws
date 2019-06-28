@@ -302,8 +302,28 @@ data "aws_acm_certificate" "assets" {
   provider = "aws.aws_cloudfront_certificate"
 }
 
+data "aws_lb" "cache-public" {
+  count    = "${var.cloudfront_create}"
+  name     = "govuk-cache-public"
+  provider = "aws.aws_replica"
+}
+
 resource "aws_cloudfront_distribution" "www_distribution" {
   count = "${var.cloudfront_create}"
+
+  origin {
+    domain_name = "${data.aws_lb.cache-public.dns_name}"
+    origin_id   = "${data.aws_lb.cache-public.name}"
+
+    custom_origin_config {
+      http_port                = 80
+      https_port               = 443
+      origin_protocol_policy   = "http-only"
+      origin_ssl_protocols     = ["TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_keepalive_timeout = 5
+      origin_read_timeout      = 30
+    }
+  }
 
   origin {
     domain_name = "${aws_s3_bucket.govuk-mirror.bucket_domain_name}"
@@ -312,6 +332,22 @@ resource "aws_cloudfront_distribution" "www_distribution" {
 
     s3_origin_config {
       origin_access_identity = "${aws_cloudfront_origin_access_identity.mirror_access_identity.cloudfront_access_identity_path}"
+    }
+  }
+
+  origin_group {
+    origin_id = "www"
+
+    failover_criteria {
+      status_codes = [500, 502, 503, 504]
+    }
+
+    member {
+      origin_id = "${data.aws_lb.cache-public.name}"
+    }
+
+    member {
+      origin_id = "S3 www"
     }
   }
 
@@ -378,12 +414,42 @@ resource "aws_cloudfront_distribution" "assets_distribution" {
   count = "${var.cloudfront_create}"
 
   origin {
+    domain_name = "${data.aws_lb.cache-public.dns_name}"
+    origin_id   = "${data.aws_lb.cache-public.name}"
+
+    custom_origin_config {
+      http_port                = 80
+      https_port               = 443
+      origin_protocol_policy   = "http-only"
+      origin_ssl_protocols     = ["TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_keepalive_timeout = 5
+      origin_read_timeout      = 30
+    }
+  }
+
+  origin {
     domain_name = "${aws_s3_bucket.govuk-mirror.bucket_domain_name}"
     origin_id   = "S3-govuk-${var.aws_environment}-mirror/assets.publishing.service.gov.uk"
     origin_path = "/assets.publishing.service.gov.uk"
 
     s3_origin_config {
       origin_access_identity = "${aws_cloudfront_origin_access_identity.mirror_access_identity.cloudfront_access_identity_path}"
+    }
+  }
+
+  origin_group {
+    origin_id = "assets"
+
+    failover_criteria {
+      status_codes = [500, 502, 503, 504]
+    }
+
+    member {
+      origin_id = "${data.aws_lb.cache-public.name}"
+    }
+
+    member {
+      origin_id = "S3-govuk-${var.aws_environment}-mirror/assets.publishing.service.gov.uk"
     }
   }
 
