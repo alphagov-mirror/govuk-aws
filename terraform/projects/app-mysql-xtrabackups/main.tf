@@ -12,6 +12,12 @@ variable "aws_region" {
   default     = "eu-west-1"
 }
 
+variable "aws_replica_region" {
+  type        = "string"
+  description = "AWS region"
+  default     = "eu-west-2"
+}
+
 variable "stackname" {
   type        = "string"
   description = "Stackname"
@@ -39,7 +45,7 @@ variable "username" {
 
 variable "versioning" {
   type    = "string"
-  default = "false"
+  default = "true"
 }
 
 variable "lifecycle" {
@@ -64,6 +70,17 @@ variable "create_env_sync_resources" {
 terraform {
   backend          "s3"             {}
   required_version = "= 0.11.14"
+}
+
+provider "aws" {
+  region  = "${var.aws_region}"
+  version = "2.16.0"
+}
+
+provider "aws" {
+  region  = "${var.aws_replica_region}"
+  alias   = "aws_replica"
+  version = "2.16.0"
 }
 
 resource "aws_s3_bucket" "bucket" {
@@ -98,6 +115,22 @@ resource "aws_s3_bucket" "bucket" {
       expired_object_delete_marker = false
     }
   }
+
+  replication_configuration {
+    role = "${aws_iam_role.govuk_mysql_xtrabackups_replication_role.arn}"
+
+    rules {
+      id     = "govuk-mysql-xtrabackups-replication-whole-bucket-rule"
+      prefix = ""
+      status = "Enabled"
+
+      destination {
+        bucket        = "${aws_s3_bucket.govuk-mysql-xtrabackups-replica.arn}"
+        storage_class = "STANDARD"
+      }
+    }
+  }
+
 }
 
 resource "aws_iam_policy" "readwrite_policy" {
@@ -163,4 +196,30 @@ resource "aws_iam_policy_attachment" "env_sync_policy_attachment" {
   ]
 
   policy_arn = "${aws_iam_policy.env_sync_policy.arn}"
+}
+
+resource "aws_s3_bucket" "govuk-mysql-xtrabackups-replica" {
+  bucket   = "govuk-${var.aws_environment}-mysql-xtrabackups-replica"
+  region   = "${var.aws_replica_region}"
+  provider = "aws.aws_replica"
+
+  tags {
+    Name            = "govuk-${var.aws_environment}-mysql-xtrabackups-replica"
+    aws_environment = "${var.aws_environment}"
+  }
+
+  versioning {
+    enabled = true
+  }
+}
+
+# S3 backup replica role configuration
+data "template_file" "s3_govuk_mysql_xtrabackups_replication_role_template" {
+  template = "${file("${path.module}/../../policies/s3_govuk_mysql_xtrabackups_replication_role.tpl")}"
+}
+
+# Adding backup replication role
+resource "aws_iam_role" "govuk_mysql_xtrabackups_replication_role" {
+  name               = "${var.stackname}-mysql-xtrabackups-replication-role"
+  assume_role_policy = "${data.template_file.s3_govuk_mysql_xtrabackups_replication_role_template.rendered}"
 }

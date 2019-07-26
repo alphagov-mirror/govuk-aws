@@ -12,6 +12,7 @@ https://github.com/alphagov/govuk-terraform-provisioning/tree/master/old-project
 |------|-------------|:----:|:-----:|:-----:|
 | aws_environment | AWS Environment | string | - | yes |
 | aws_region | AWS region | string | `eu-west-1` | no |
+| aws_replica_region | AWS region | string | `eu-west-2` | no |
 | bucket_name |  | string | `govuk-mysql-xtrabackups` | no |
 | create_env_sync_resources | Create users and policies used to sync data between environments. | string | `false` | no |
 | days_to_keep |  | string | `91` | no |
