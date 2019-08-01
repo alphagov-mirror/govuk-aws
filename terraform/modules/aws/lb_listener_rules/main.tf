@@ -32,6 +32,12 @@ variable "rules_host" {
   default     = []
 }
 
+variable "disabled_healthchecks" {
+  type        = "list"
+  description = "A list of rules_hosts that should NOT have healthchecks enabled. Used to blacklist healthchecks while aws-migration is incomplete"
+  default     = []
+}
+
 variable "rules_host_domain" {
   type        = "string"
   description = "Host header domain to append to the hosts in rules_host."
@@ -114,6 +120,7 @@ resource "aws_lb_target_group" "tg" {
   deregistration_delay = "${var.target_group_deregistration_delay}"
 
   health_check {
+    enabled             = "${!contains(var.disabled_healthchecks, var.rules_host[count.index])}"
     interval            = "${var.target_group_health_check_interval}"
     path                = "${var.target_group_health_check_path_prefix}${var.rules_host[count.index]}"
     matcher             = "${var.target_group_health_check_matcher}"

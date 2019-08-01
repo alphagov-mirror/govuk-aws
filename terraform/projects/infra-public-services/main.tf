@@ -38,12 +38,6 @@ variable "app_stackname" {
   default     = "blue"
 }
 
-variable "enable_lb_app_healthchecks" {
-  type        = "string"
-  description = "Use application specific target groups and healthchecks based on the list of services in the cname variable."
-  default     = false
-}
-
 variable "apt_public_service_names" {
   type    = "list"
   default = []
@@ -455,6 +449,12 @@ variable "waf_logs_hec_token" {
   type        = "string"
 }
 
+variable "disabled_lb_healthchecks" {
+  type        = "list"
+  description = "A list of rules_hosts that should NOT have healthchecks enabled. Used to blacklist healthchecks while aws-migration is incomplete"
+  default     = []
+}
+
 # Resources
 # --------------------------------------------------------------
 terraform {
@@ -559,7 +559,8 @@ module "backend_public_lb_rules" {
   rules_host_domain      = "*"
   vpc_id                 = "${data.terraform_remote_state.infra_vpc.vpc_id}"
   listener_arn           = "${module.backend_public_lb.load_balancer_ssl_listeners[0]}"
-  rules_host             = ["${compact(split(",", var.enable_lb_app_healthchecks ? join(",", var.backend_public_service_cnames) : ""))}"]
+  rules_host             = ["${compact(var.backend_public_service_cnames)}"]
+  disabled_healthchecks  = ["${var.disabled_lb_healthchecks}"]
   priority_offset        = "${length(var.backend_alb_blocked_host_headers) + 1}"
   default_tags           = "${map("Project", var.stackname, "aws_migration", "backend", "aws_environment", var.aws_environment)}"
 }
@@ -739,7 +740,8 @@ module "cache_public_lb_rules" {
   rules_host_domain      = "*"
   vpc_id                 = "${data.terraform_remote_state.infra_vpc.vpc_id}"
   listener_arn           = "${module.cache_public_lb.load_balancer_ssl_listeners[0]}"
-  rules_host             = ["${compact(split(",", var.enable_lb_app_healthchecks ? join(",", var.cache_public_service_cnames) : ""))}"]
+  rules_host             = ["${compact(var.cache_public_service_cnames)}"]
+  disabled_healthchecks  = ["${var.disabled_lb_healthchecks}"]
   default_tags           = "${map("Project", var.stackname, "aws_migration", "cache", "aws_environment", var.aws_environment)}"
 }
 
