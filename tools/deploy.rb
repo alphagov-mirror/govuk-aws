@@ -38,8 +38,10 @@ jenkins_job_uri = URI.parse("#{jenkins_url}#{jenkins_job_path}")
 
 # Get temporary AWS credentials
 puts 'Requesting temporary AWS credentials...'
-`govukcli set-context #{environment}`
-env = `govukcli aws invoke printenv`
+# TODO: this doesn't quite work properly yet; still seems to require running the same
+# command from the shell before running this script. Is this script actually using
+# the output of the command here or is it reading from the environment?
+env = `gds aws govuk-#{environment} -e`
 abort('Could not get temporary AWS credentials') unless $?.exitstatus.zero?
 
 # Set up the environment variables for the temporary AWS credentials
