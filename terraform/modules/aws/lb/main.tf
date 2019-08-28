@@ -221,6 +221,14 @@ resource "aws_lb_listener" "listener_non_ssl" {
     target_group_arn = "${lookup(local.target_groups_arns, "${element(values(var.listener_action), element(compact(data.null_data_source.values.*.inputs.arn_index),count.index))}")}"
     type             = "forward"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    "aws_lb_target_group.tg_default"
+  ]
 }
 
 resource "aws_lb_listener" "listener" {
@@ -235,6 +243,14 @@ resource "aws_lb_listener" "listener" {
     target_group_arn = "${lookup(local.target_groups_arns, "${element(values(var.listener_action), element(compact(data.null_data_source.values.*.inputs.ssl_arn_index),count.index))}")}"
     type             = "forward"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    "aws_lb_target_group.tg_default"
+  ]
 }
 
 resource "aws_lb_listener_certificate" "secondary" {
