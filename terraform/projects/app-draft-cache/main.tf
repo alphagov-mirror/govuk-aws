@@ -50,7 +50,7 @@ variable "asg_size" {
 variable "instance_type" {
   type        = "string"
   description = "Instance type used for EC2 resources"
-  default     = "t2.medium"
+  default     = "t3.xlarge"
 }
 
 variable "external_zone_name" {
