@@ -36,17 +36,35 @@ jenkins_job_path = '/job/Deploy_Terraform_GOVUK_AWS/buildWithParameters'.freeze
 jenkins_crumb_issuer_uri = URI.parse("#{jenkins_url}#{jenkins_crumb_issuer_path}")
 jenkins_job_uri = URI.parse("#{jenkins_url}#{jenkins_job_path}")
 
-# Get temporary AWS credentials
-puts 'Requesting temporary AWS credentials...'
-`govukcli set-context #{environment}`
-env = `govukcli aws invoke printenv`
-abort('Could not get temporary AWS credentials') unless $?.exitstatus.zero?
+# If gds-cli has been configured, use it by default. Otherwise, use govukcli.
+use_gds_cli = system("grep 'initialised: true' ~/.gds/config.yml > /dev/null 2>&1")
 
-# Set up the environment variables for the temporary AWS credentials
-aws_credential_env_vars = %w(AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN).freeze
-env.each_line do |env_var|
-  key, value = env_var.split('=')
-  ENV[key] = value.chomp if aws_credential_env_vars.include?(key)
+# Get temporary AWS credentials from either gds-cli or govukcli and set
+# the corresponding environment variables to the values returned.
+if use_gds_cli
+  # TODO: Use local variables for the creds instead of leaking them to the
+  # environment. This would be more in line with how gds-cli is intended to be
+  # used. Arguably this tool shouldn't be invoking gds-cli at all and should
+  # instead be invoked via `gds aws govuk-$environment -- deploy.rb ...`.
+  puts 'Requesting temporary AWS credentials via "gds aws"...'
+  env = `gds aws govuk-#{environment} -e`
+  abort('Could not get temporary AWS credentials') unless $?.exitstatus.zero?
+  env.each_line do |env_var|
+    if match = env_var.match(/(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN)='(.*)'/)
+      key, value = match.captures
+      ENV[key] = value
+    end
+  end
+else
+  puts 'Requesting temporary AWS credentials via "govukcli aws"...'
+  `govukcli set-context #{environment}`
+  env = `govukcli aws invoke printenv`
+  abort('Could not get temporary AWS credentials') unless $?.exitstatus.zero?
+  aws_credential_env_vars = %w(AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN).freeze
+  env.each_line do |env_var|
+    key, value = env_var.split('=')
+    ENV[key] = value.chomp if aws_credential_env_vars.include?(key)
+  end
 end
 
 # Get a Jenkins "crumb" to authenticate the next request
