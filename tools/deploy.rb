@@ -6,7 +6,7 @@ require 'json'
 require 'uri'
 
 # Fields from the command line
-command, environment, stack, project, *rest= ARGV
+command, environment, stack, project, branch, data_branch, *rest= ARGV
 
 abort("too many arguments: #{rest}") unless rest.empty?
 
@@ -15,13 +15,17 @@ valid_commands = %w(plan apply plan-destroy destroy).freeze
 valid_environments = %w(integration staging production test tools training).freeze
 valid_stacks = %w(blue green govuk).freeze
 
-usage = 'Usage: GITHUB_USERNAME=... GITHUB_TOKEN=... ruby deploy.rb <command> <environment> <stack> <project>'
+usage = 'Usage: GITHUB_USERNAME=... GITHUB_TOKEN=... ruby deploy.rb <command> <environment> <stack> <project> [<branch>] [<data_branch>]'
 
 abort("GITHUB_USERNAME environment variable must be set\n#{usage}") unless ENV.has_key?('GITHUB_USERNAME')
 abort("GITHUB_TOKEN environment variable must be set\n#{usage}") unless ENV.has_key?('GITHUB_TOKEN')
 abort("command must be one of #{valid_commands.join(', ')}\n#{usage}") unless valid_commands.include?(command)
 abort("environment must be one of #{valid_environments.join(', ')}\n#{usage}") unless valid_environments.include?(environment)
 abort("stack must be one of #{valid_stacks.join(', ')}\n#{usage}") unless valid_stacks.include?(stack)
+
+# Use master branch if branch isn't specified.
+branch = 'master' if branch.nil?
+data_branch = 'master' if data_branch.nil?
 
 # Make sure the user is happy to go ahead
 puts "You're about to #{command} the #{stack}/#{project} project in #{environment}"
@@ -95,7 +99,9 @@ jenkins_job_request.set_form_data({
   'COMMAND' => command,
   'ENVIRONMENT' => environment,
   'STACKNAME' => stack,
-  'PROJECT' => project
+  'PROJECT' => project,
+  'GOVUK_AWS_BRANCH' => branch,
+  'GOVUK_AWS_DATA_BRANCH' => data_branch,
 })
 jenkins_job_request[jenkins_crumb['crumbRequestField']] = jenkins_crumb['crumb']
 jenkins_job_response = jenkins_job_http.request(jenkins_job_request)
