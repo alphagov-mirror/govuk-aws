@@ -57,6 +57,7 @@ git clone git@github.com:alphagov/govuk-knowledge-graph.git
 
 # Set correct permissions for provisioning script
 cd govuk-knowledge-graph
+git checkout remove-duplicate-dependencies-from-provisioning
 chmod +x ./provision_knowledge_graph
 
 # Run provisioning script
