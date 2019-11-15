@@ -35,8 +35,10 @@ This module creates the following.
 | aws_subscription_account_region | AWS region of the SNS topic | string | `eu-west-1` | no |
 | create_sns_subscription | Indicates whether to create an SNS subscription | string | `false` | no |
 | create_sns_topic | Indicates whether to create an SNS Topic | string | `false` | no |
+| integration_only | Only apply these policies to integration | string | `false` | no |
 | remote_state_bucket | S3 bucket we store our terraform state in | string | - | yes |
 | remote_state_infra_monitoring_key_stack | Override stackname path to infra_monitoring remote state | string | `` | no |
+| replication_setting | Whether replication is Enabled or Disabled | string | `Enabled` | no |
 | stackname | Stackname | string | - | yes |
 
 ## Outputs

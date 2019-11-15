@@ -26,6 +26,18 @@ variable "stackname" {
   description = "Stackname"
 }
 
+variable "integration_only" {
+  type        = "string"
+  description = "Only apply these policies to integration "
+  default     = "false"
+}
+
+variable "replication_setting" {
+  type        = "string"
+  description = "Whether replication is Enabled or Disabled"
+  default     = "Enabled"
+}
+
 # Resources
 # --------------------------------------------------------------
 terraform {
@@ -67,7 +79,7 @@ resource "aws_s3_bucket" "activestorage" {
     rules {
       id     = "govuk-content-publisher-activestorage-replication-whole-bucket-rule"
       prefix = ""
-      status = "Enabled"
+      status = "${var.replication_setting}"
 
       destination {
         bucket        = "${aws_s3_bucket.activestorage_replica.arn}"
@@ -89,6 +101,20 @@ resource "aws_s3_bucket" "activestorage_replica" {
 
   versioning {
     enabled = true
+  }
+
+  lifecycle_rule {
+    id      = "whole_bucket_lifecycle_rule_integration"
+    prefix  = ""
+    enabled = "${var.integration_only}"
+
+    expiration {
+      days = "7"
+    }
+
+    noncurrent_version_expiration {
+      days = "1"
+    }
   }
 }
 
