@@ -193,6 +193,49 @@ resource "aws_iam_policy" "allow-iam-key-rotation" {
   policy      = "${data.aws_iam_policy_document.allow-iam-key-rotation.json}"
 }
 
+# Data science access policy
+data "aws_iam_policy_document" "data-science-access-glue" {
+  statement {
+    actions = [
+      "glue:GetJob",
+      "glue:ListJobs",
+      "glue:StartJobRun",
+    ]
+
+    effect    = "Allow"
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "data-science-access-glue" {
+  name        = "DataScienceAccess"
+  description = "Allows users access to Glue resources for data science on GOV.UK"
+  policy      = "${data.aws_iam_policy_document.data-science-access-glue.json}"
+}
+
+data "aws_iam_policy_document" "data-science-access-sagemaker" {
+  statement {
+    actions = [
+      "sagemaker:ListNotebookInstances",
+      "sagemaker:DescribeNotebookInstance",
+      "sagemaker:CreateNotebookInstance",
+      "sagemaker:UpdateNotebookInstance",
+      "sagemaker:DeleteNotebookInstance",
+      "sagemaker:StartNotebookInstance",
+      "sagemaker:StopNotebookInstance",
+    ]
+
+    effect    = "Allow"
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "data-science-access-sagemaker" {
+  name        = "DataScienceAccess"
+  description = "Allows users access to SageMaker resources for data science on GOV.UK"
+  policy      = "${data.aws_iam_policy_document.data-science-access-sagemaker.json}"
+}
+
 # SOPS KMS key
 
 data "aws_iam_policy_document" "kms_sops_policy" {
