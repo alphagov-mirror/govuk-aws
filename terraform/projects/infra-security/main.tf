@@ -74,6 +74,18 @@ variable "role_poweruser_policy_arns" {
   default     = []
 }
 
+variable "role_datascienceuser_user_arns" {
+  type        = "list"
+  description = "List of ARNs of external users that can assume the role"
+  default     = []
+}
+
+variable "role_datascienceuser_policy_arns" {
+  type        = "list"
+  description = "List of ARNs of policies to attach to the role"
+  default     = []
+}
+
 variable "role_user_user_arns" {
   type        = "list"
   description = "List of ARNs of external users that can assume the role"
