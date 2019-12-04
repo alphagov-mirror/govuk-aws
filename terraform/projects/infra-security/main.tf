@@ -134,6 +134,13 @@ module "role_poweruser" {
   role_policy_arns = ["${var.role_poweruser_policy_arns}"]
 }
 
+module "role_datascienceuser" {
+  source           = "../../modules/aws/iam/role_user"
+  role_name        = "govuk-datascienceusers"
+  role_user_arns   = ["${var.role_datascienceuser_user_arns}"]
+  role_policy_arns = ["${var.role_datascienceuser_policy_arns}"]
+}
+
 module "role_user" {
   source           = "../../modules/aws/iam/role_user"
   role_name        = "govuk-users"
@@ -208,7 +215,7 @@ data "aws_iam_policy_document" "data-science-access-glue" {
 }
 
 resource "aws_iam_policy" "data-science-access-glue" {
-  name        = "DataScienceAccess"
+  name        = "DataScienceAccessGlue"
   description = "Allows users access to Glue resources for data science on GOV.UK"
   policy      = "${data.aws_iam_policy_document.data-science-access-glue.json}"
 }
@@ -231,7 +238,7 @@ data "aws_iam_policy_document" "data-science-access-sagemaker" {
 }
 
 resource "aws_iam_policy" "data-science-access-sagemaker" {
-  name        = "DataScienceAccess"
+  name        = "DataScienceAccessSageMaker"
   description = "Allows users access to SageMaker resources for data science on GOV.UK"
   policy      = "${data.aws_iam_policy_document.data-science-access-sagemaker.json}"
 }
