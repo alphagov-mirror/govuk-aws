@@ -54,7 +54,7 @@ jobs:
               echo "Checking the updatedness of README files..."
               ./tools/update-docs.sh
 
-              if [[ ! $(git diff --exit-code) ]]; then
+              if [[ $(git diff --exit-code) == 1 ]]; then
                 echo "The documentation isn't up to date. You should run ./tools/update-docs.sh and commit the results."
                 exit 1
               fi
