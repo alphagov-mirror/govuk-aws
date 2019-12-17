@@ -7,7 +7,7 @@
 *   - Create resources to export CloudWatch log groups to S3 via Lambda-Kinesis_Firehose
 *   - Create SNS topic to send infrastructure alerts, and a SQS queue that subscribes to
 *     the topic
-*   - Create an IAM user which allows Terraboard to read Terraform state files from S3
+*   - Create an IAM user which allows Terraboard to read Terraform state files from AWS S3
 */
 
 variable "aws_region" {
