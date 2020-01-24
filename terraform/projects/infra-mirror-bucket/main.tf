@@ -214,6 +214,28 @@ resource "aws_s3_bucket" "govuk-mirror-replica" {
   versioning {
     enabled = true
   }
+
+  lifecycle_rule {
+    id      = "main"
+    enabled = true
+
+    prefix = ""
+
+    noncurrent_version_expiration {
+      days = 5
+    }
+  }
+
+  lifecycle_rule {
+    id      = "government_uploads"
+    enabled = true
+
+    prefix = "www.gov.uk/government/uploads/"
+
+    noncurrent_version_expiration {
+      days = 8
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "govuk_mirror_read_policy" {
