@@ -66,7 +66,7 @@ cd govuk-knowledge-graph
 chmod +x ./provision_knowledge_graph
 
 # Run provisioning script
-./provision_knowledge_graph -i $instance_id -b ${database_backups_bucket_name} -d ${data_infrastructure_bucket_name} -r ${related_links_bucket_name}
+./provision_knowledge_graph -i $instance_id -d ${data_infrastructure_bucket_name} -r ${related_links_bucket_name}
 
 # Set correct permissions for user journey visualisation viewer script
 cd /var/data/github/govuk-knowledge-graph/src/visualization
