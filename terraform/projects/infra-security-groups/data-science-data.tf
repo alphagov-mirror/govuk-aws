@@ -8,7 +8,7 @@ resource "aws_security_group" "data-science-data" {
   }
 }
 
-resource "aws_security_group_rule" "data-science-data_ingress_ssh" {
+resource "aws_security_group_rule" "data-science-data_ingress_office_ssh" {
   type        = "ingress"
   protocol    = "tcp"
   from_port   = 22
