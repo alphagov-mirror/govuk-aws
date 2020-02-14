@@ -2,144 +2,139 @@
 
 Manage the security groups for the entire infrastructure
 
-## Providers
-
-| Name | Version |
-|------|---------|
-| aws | 2.46.0 |
-| fastly | 0.1.2 |
-| terraform | n/a |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:-----:|
-| aws\_environment | AWS Environment | `string` | n/a | yes |
-| aws\_region | AWS region | `string` | `"eu-west-1"` | no |
-| carrenza\_draft\_frontend\_ips | An array of CIDR blocks for the current environment that will allow access to draft-content-store from Carrenza. | `list` | `[]` | no |
-| carrenza\_env\_ips | An array of CIDR blocks for the current environment that will be allowed to SSH to the jumpbox. | `list` | `[]` | no |
-| carrenza\_integration\_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | `list` | n/a | yes |
-| carrenza\_production\_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | `list` | n/a | yes |
-| carrenza\_rabbitmq\_ips | An array of CIDR blocks that will be allowed to federate with the rabbitmq nodes. | `list` | <pre>[<br>  ""<br>]</pre> | no |
-| carrenza\_staging\_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | `list` | n/a | yes |
-| carrenza\_vpn\_subnet\_cidr | The Carrenza VPN subnet CIDR | `list` | `[]` | no |
-| concourse\_aws\_account\_id | AWS account ID which contains the Concourse role | `string` | n/a | yes |
-| concourse\_ips | An array of CIDR blocks that represent ingress Concourse | `list` | n/a | yes |
-| ithc\_access\_ips | An array of CIDR blocks that will be allowed temporary access for ITHC purposes. | `list` | `[]` | no |
-| office\_ips | An array of CIDR blocks that will be allowed offsite access. | `list` | n/a | yes |
-| remote\_state\_bucket | S3 bucket we store our terraform state in | `string` | n/a | yes |
-| remote\_state\_infra\_networking\_key\_stack | Override infra\_networking remote state path | `string` | `""` | no |
-| remote\_state\_infra\_vpc\_key\_stack | Override infra\_vpc remote state path | `string` | `""` | no |
-| stackname | The name of the stack being built. Must be unique within the environment as it's used for disambiguation. | `string` | n/a | yes |
-| traffic\_replay\_ips | An array of CIDR blocks that will replay traffic against an environment | `list` | n/a | yes |
+|------|-------------|:----:|:-----:|:-----:|
+| aws_environment | AWS Environment | string | - | yes |
+| aws_region | AWS region | string | `eu-west-1` | no |
+| carrenza_draft_frontend_ips | An array of CIDR blocks for the current environment that will allow access to draft-content-store from Carrenza. | list | `<list>` | no |
+| carrenza_env_ips | An array of CIDR blocks for the current environment that will be allowed to SSH to the jumpbox. | list | `<list>` | no |
+| carrenza_integration_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | list | - | yes |
+| carrenza_production_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | list | - | yes |
+| carrenza_rabbitmq_ips | An array of CIDR blocks that will be allowed to federate with the rabbitmq nodes. | list | `<list>` | no |
+| carrenza_staging_ips | An array of CIDR blocks that will be allowed to SSH to the jumpbox. | list | - | yes |
+| carrenza_vpn_subnet_cidr | The Carrenza VPN subnet CIDR | list | `<list>` | no |
+| concourse_aws_account_id | AWS account ID which contains the Concourse role | string | - | yes |
+| concourse_ips | An array of CIDR blocks that represent ingress Concourse | list | - | yes |
+| ithc_access_ips | An array of CIDR blocks that will be allowed temporary access for ITHC purposes. | list | `<list>` | no |
+| office_ips | An array of CIDR blocks that will be allowed offsite access. | list | - | yes |
+| remote_state_bucket | S3 bucket we store our terraform state in | string | - | yes |
+| remote_state_infra_networking_key_stack | Override infra_networking remote state path | string | `` | no |
+| remote_state_infra_vpc_key_stack | Override infra_vpc remote state path | string | `` | no |
+| stackname | The name of the stack being built. Must be unique within the environment as it's used for disambiguation. | string | - | yes |
+| traffic_replay_ips | An array of CIDR blocks that will replay traffic against an environment | list | - | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| sg\_apt\_external\_elb\_id | n/a |
-| sg\_apt\_id | n/a |
-| sg\_apt\_internal\_elb\_id | n/a |
-| sg\_asset-master-efs\_id | n/a |
-| sg\_asset-master\_id | n/a |
-| sg\_aws-vpn\_id | n/a |
-| sg\_backend-redis\_id | n/a |
-| sg\_backend\_elb\_external\_id | n/a |
-| sg\_backend\_elb\_internal\_id | n/a |
-| sg\_backend\_id | n/a |
-| sg\_bouncer\_elb\_id | n/a |
-| sg\_bouncer\_id | n/a |
-| sg\_bouncer\_internal\_elb\_id | n/a |
-| sg\_cache\_elb\_id | n/a |
-| sg\_cache\_external\_elb\_id | n/a |
-| sg\_cache\_id | n/a |
-| sg\_calculators-frontend\_elb\_id | n/a |
-| sg\_calculators-frontend\_id | n/a |
-| sg\_calendars\_carrenza\_alb\_id | n/a |
-| sg\_ckan\_elb\_external\_id | n/a |
-| sg\_ckan\_elb\_internal\_id | n/a |
-| sg\_ckan\_id | n/a |
-| sg\_content-data-api-db-admin\_id | n/a |
-| sg\_content-data-api-postgresql-primary\_id | n/a |
-| sg\_content-store\_external\_elb\_id | n/a |
-| sg\_content-store\_id | n/a |
-| sg\_content-store\_internal\_elb\_id | n/a |
-| sg\_db-admin\_elb\_id | n/a |
-| sg\_db-admin\_id | n/a |
-| sg\_deploy\_elb\_id | n/a |
-| sg\_deploy\_id | n/a |
-| sg\_deploy\_internal\_elb\_id | n/a |
-| sg\_docker\_management\_etcd\_elb\_id | n/a |
-| sg\_docker\_management\_id | n/a |
-| sg\_draft-cache\_elb\_id | n/a |
-| sg\_draft-cache\_external\_elb\_id | n/a |
-| sg\_draft-cache\_id | n/a |
-| sg\_draft-content-store\_external\_elb\_id | n/a |
-| sg\_draft-content-store\_id | n/a |
-| sg\_draft-content-store\_internal\_elb\_id | n/a |
-| sg\_draft-frontend\_elb\_id | n/a |
-| sg\_draft-frontend\_id | n/a |
-| sg\_elasticsearch6\_id | n/a |
-| sg\_email-alert-api\_elb\_external\_id | n/a |
-| sg\_email-alert-api\_elb\_internal\_id | n/a |
-| sg\_email-alert-api\_id | n/a |
-| sg\_feedback\_elb\_id | n/a |
-| sg\_frontend\_elb\_id | n/a |
-| sg\_frontend\_id | n/a |
-| sg\_gatling\_external\_elb\_id | n/a |
-| sg\_gatling\_id | n/a |
-| sg\_graphite\_external\_elb\_id | n/a |
-| sg\_graphite\_id | n/a |
-| sg\_graphite\_internal\_elb\_id | n/a |
-| sg\_jumpbox\_id | n/a |
-| sg\_knowledge-graph\_elb\_external\_id | n/a |
-| sg\_knowledge-graph\_id | n/a |
-| sg\_licensify-backend\_external\_elb\_id | n/a |
-| sg\_licensify-backend\_id | n/a |
-| sg\_licensify-backend\_internal\_elb\_id | n/a |
-| sg\_licensify-frontend\_external\_elb\_id | n/a |
-| sg\_licensify-frontend\_id | n/a |
-| sg\_licensify-frontend\_internal\_lb\_id | n/a |
-| sg\_licensify\_documentdb\_id | n/a |
-| sg\_management\_id | n/a |
-| sg\_mapit\_carrenza\_alb\_id | n/a |
-| sg\_mapit\_elb\_id | n/a |
-| sg\_mapit\_id | n/a |
-| sg\_mirrorer\_id | n/a |
-| sg\_mongo\_id | n/a |
-| sg\_monitoring\_external\_elb\_id | n/a |
-| sg\_monitoring\_id | n/a |
-| sg\_monitoring\_internal\_elb\_id | n/a |
-| sg\_mysql-primary\_id | n/a |
-| sg\_mysql-replica\_id | n/a |
-| sg\_offsite\_ssh\_id | n/a |
-| sg\_postgresql-primary\_id | n/a |
-| sg\_prometheus\_external\_elb\_id | n/a |
-| sg\_prometheus\_id | n/a |
-| sg\_publishing-api\_elb\_external\_id | n/a |
-| sg\_publishing-api\_elb\_internal\_id | n/a |
-| sg\_publishing-api\_id | n/a |
-| sg\_puppetmaster\_elb\_id | n/a |
-| sg\_puppetmaster\_id | n/a |
-| sg\_rabbitmq\_elb\_id | n/a |
-| sg\_rabbitmq\_id | n/a |
-| sg\_related-links\_id | n/a |
-| sg\_router-api\_elb\_id | n/a |
-| sg\_router-backend\_id | n/a |
-| sg\_search-api\_external\_elb\_id | n/a |
-| sg\_search\_elb\_id | n/a |
-| sg\_search\_id | n/a |
-| sg\_shared\_documentdb\_id | n/a |
-| sg\_static\_carrenza\_alb\_id | n/a |
-| sg\_support-api\_external\_elb\_id | n/a |
-| sg\_transition-db-admin\_elb\_id | n/a |
-| sg\_transition-db-admin\_id | n/a |
-| sg\_transition-postgresql-primary\_id | n/a |
-| sg\_transition-postgresql-standby\_id | n/a |
-| sg\_whitehall-backend\_external\_elb\_id | n/a |
-| sg\_whitehall-backend\_id | n/a |
-| sg\_whitehall-backend\_internal\_elb\_id | n/a |
-| sg\_whitehall-frontend\_elb\_id | n/a |
-| sg\_whitehall-frontend\_external\_elb\_id | n/a |
-| sg\_whitehall-frontend\_id | n/a |
+| sg_apt_external_elb_id |  |
+| sg_apt_id |  |
+| sg_apt_internal_elb_id |  |
+| sg_asset-master-efs_id |  |
+| sg_asset-master_id |  |
+| sg_aws-vpn_id |  |
+| sg_backend-redis_id |  |
+| sg_backend_elb_external_id |  |
+| sg_backend_elb_internal_id |  |
+| sg_backend_id |  |
+| sg_bouncer_elb_id |  |
+| sg_bouncer_id |  |
+| sg_bouncer_internal_elb_id |  |
+| sg_cache_elb_id |  |
+| sg_cache_external_elb_id |  |
+| sg_cache_id |  |
+| sg_calculators-frontend_elb_id |  |
+| sg_calculators-frontend_id |  |
+| sg_calendars_carrenza_alb_id |  |
+| sg_ckan_elb_external_id |  |
+| sg_ckan_elb_internal_id |  |
+| sg_ckan_id |  |
+| sg_content-data-api-db-admin_id |  |
+| sg_content-data-api-postgresql-primary_id |  |
+| sg_content-store_external_elb_id |  |
+| sg_content-store_id |  |
+| sg_content-store_internal_elb_id |  |
+| sg_data-science-data_elb_external_id |  |
+| sg_data-science-data_id |  |
+| sg_db-admin_elb_id |  |
+| sg_db-admin_id |  |
+| sg_deploy_elb_id |  |
+| sg_deploy_id |  |
+| sg_deploy_internal_elb_id |  |
+| sg_docker_management_etcd_elb_id |  |
+| sg_docker_management_id |  |
+| sg_draft-cache_elb_id |  |
+| sg_draft-cache_external_elb_id |  |
+| sg_draft-cache_id |  |
+| sg_draft-content-store_external_elb_id |  |
+| sg_draft-content-store_id |  |
+| sg_draft-content-store_internal_elb_id |  |
+| sg_draft-frontend_elb_id |  |
+| sg_draft-frontend_id |  |
+| sg_elasticsearch6_id |  |
+| sg_email-alert-api_elb_external_id |  |
+| sg_email-alert-api_elb_internal_id |  |
+| sg_email-alert-api_id |  |
+| sg_feedback_elb_id |  |
+| sg_frontend_elb_id |  |
+| sg_frontend_id |  |
+| sg_gatling_external_elb_id |  |
+| sg_gatling_id |  |
+| sg_graphite_external_elb_id |  |
+| sg_graphite_id |  |
+| sg_graphite_internal_elb_id |  |
+| sg_jumpbox_id |  |
+| sg_knowledge-graph_elb_external_id |  |
+| sg_knowledge-graph_id |  |
+| sg_licensify-backend_external_elb_id |  |
+| sg_licensify-backend_id |  |
+| sg_licensify-backend_internal_elb_id |  |
+| sg_licensify-frontend_external_elb_id |  |
+| sg_licensify-frontend_id |  |
+| sg_licensify-frontend_internal_lb_id |  |
+| sg_licensify_documentdb_id |  |
+| sg_management_id |  |
+| sg_mapit_carrenza_alb_id |  |
+| sg_mapit_elb_id |  |
+| sg_mapit_id |  |
+| sg_mirrorer_id |  |
+| sg_mongo_id |  |
+| sg_monitoring_external_elb_id |  |
+| sg_monitoring_id |  |
+| sg_monitoring_internal_elb_id |  |
+| sg_mysql-primary_id |  |
+| sg_mysql-replica_id |  |
+| sg_offsite_ssh_id |  |
+| sg_postgresql-primary_id |  |
+| sg_prometheus_external_elb_id |  |
+| sg_prometheus_id |  |
+| sg_publishing-api_elb_external_id |  |
+| sg_publishing-api_elb_internal_id |  |
+| sg_publishing-api_id |  |
+| sg_puppetmaster_elb_id |  |
+| sg_puppetmaster_id |  |
+| sg_rabbitmq_elb_id |  |
+| sg_rabbitmq_id |  |
+| sg_related-links_id |  |
+| sg_router-api_elb_id |  |
+| sg_router-backend_id |  |
+| sg_search-api_external_elb_id |  |
+| sg_search_elb_id |  |
+| sg_search_id |  |
+| sg_shared_documentdb_id |  |
+| sg_static_carrenza_alb_id |  |
+| sg_support-api_external_elb_id |  |
+| sg_transition-db-admin_elb_id |  |
+| sg_transition-db-admin_id |  |
+| sg_transition-postgresql-primary_id |  |
+| sg_transition-postgresql-standby_id |  |
+| sg_whitehall-backend_external_elb_id |  |
+| sg_whitehall-backend_id |  |
+| sg_whitehall-backend_internal_elb_id |  |
+| sg_whitehall-frontend_elb_id |  |
+| sg_whitehall-frontend_external_elb_id |  |
+| sg_whitehall-frontend_id |  |
 
