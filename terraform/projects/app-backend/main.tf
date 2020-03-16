@@ -168,21 +168,3 @@ module "alarms-elb-backend-internal" {
   surgequeuelength_threshold     = "0"
   healthyhostcount_threshold     = "0"
 }
-
-# Outputs
-# --------------------------------------------------------------
-
-output "backend_elb_internal_address" {
-  value       = "${aws_elb.backend_elb_internal.dns_name}"
-  description = "AWS' internal DNS name for the backend ELB"
-}
-
-output "service_dns_name_internal" {
-  value       = "${aws_route53_record.service_record_internal.name}"
-  description = "DNS name to access the node service"
-}
-
-output "app_service_records_internal_dns_name" {
-  value       = "${aws_route53_record.app_service_records_internal.*.name}"
-  description = "DNS name to access the app service records"
-}
