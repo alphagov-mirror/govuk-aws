@@ -47,6 +47,12 @@ variable "remote_state_infra_monitoring_key_stack" {
   default     = ""
 }
 
+variable "remote_state_infra_public_services_key_stack" {
+  type        = "string"
+  description = "Override stackname path to infra_public_services remote state "
+  default     = ""
+}
+
 # Resources
 # --------------------------------------------------------------
 
@@ -106,6 +112,16 @@ data "terraform_remote_state" "infra_monitoring" {
   config {
     bucket = "${var.remote_state_bucket}"
     key    = "${coalesce(var.remote_state_infra_monitoring_key_stack, var.stackname)}/infra-monitoring.tfstate"
+    region = "${var.aws_region}"
+  }
+}
+
+data "terraform_remote_state" "infra_public_services" {
+  backend = "s3"
+
+  config {
+    bucket = "${var.remote_state_bucket}"
+    key    = "${coalesce(var.remote_state_infra_public_services_key_stack, var.stackname)}/infra-public-services.tfstate"
     region = "${var.aws_region}"
   }
 }
