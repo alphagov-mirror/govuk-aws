@@ -192,6 +192,10 @@ module "alarms-elb-backend-internal" {
   healthyhostcount_threshold     = "0"
 }
 
+#
+# Public (external) load balancer for "backend" publisher apps.
+#
+
 module "public_lb" {
   source                           = "../../modules/aws/lb"
   name                             = "govuk-backend-public"
@@ -233,6 +237,10 @@ resource "aws_route53_record" "public_lb_alias" {
   }
 }
 
+#
+# Internal load balancer for "backend" publisher apps.
+#
+
 module "internal_lb" {
   source                           = "../../modules/aws/lb"
   name                             = "govuk-backend-internal"
@@ -266,7 +274,7 @@ resource "aws_route53_record" "internal_lb_alias" {
 }
 
 #
-# Target groups and autoscaling group attachments.
+# Target groups and autoscaling group attachments. Used by both ALBs.
 #
 # Each service on the `backend` machines has one aws_lb_target_group and one
 # aws_autoscaling_attachment. Each aws_lb_target_group is referred to by up to
@@ -275,14 +283,16 @@ resource "aws_route53_record" "internal_lb_alias" {
 #
 # AWS has a hard limit of 50 TGs on an ASG and we have over 30 services running
 # on `backend`, so we need to stick to just one TG for each service. This also
-# minimises the overhead caused by healthchecks.
+# minimises the overhead caused by healthchecks, as well as reducing
+# unnecessary duplication and complexity.
 #
 # Generating all this using count() and lists may seem tempting, but we tried
 # that and it led to extreme difficulties in making simple changes such as
 # retiring a service, changing a timeout on a particular service, or avoiding
 # creating unnecessary duplicate target groups for each load balancer so that
-# we stay below 50 TG per ASG limit. Repetition is not the enemy here; this is
-# config, not application logic.
+# we stay below 50 TG per ASG limit. Repetition is not the enemy here. The
+# purpose of this code is to represent the config, not to be a program which
+# generates config.
 #
 
 resource "aws_lb_target_group" "asset-manager" {
@@ -293,20 +303,56 @@ resource "aws_lb_target_group" "asset-manager" {
   tags     = "${local.common_tags}"
 
   health_check {
-    interval            = 30
     path                = "/_healthcheck_asset-manager"
     matcher             = "200-399"
-    port                = "traffic-port"
-    protocol            = "HTTP"
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    timeout             = 5
   }
 }
 
 resource "aws_autoscaling_attachment" "asset-manager" {
   autoscaling_group_name = "${module.backend.autoscaling_group_name}"
   alb_target_group_arn   = "${aws_lb_target_group.asset-manager.arn}"
+}
+
+resource "aws_lb_target_group" "backdrop-admin" {
+  name     = "backend-backdrop-admin"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_backdrop-admin"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "backdrop-admin" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.backdrop-admin.arn}"
+}
+
+resource "aws_lb_target_group" "canary-backend" {
+  name     = "backend-canary-backend"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_canary-backend"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "canary-backend" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.canary-backend.arn}"
 }
 
 resource "aws_lb_target_group" "collections-publisher" {
@@ -317,14 +363,10 @@ resource "aws_lb_target_group" "collections-publisher" {
   tags     = "${local.common_tags}"
 
   health_check {
-    interval            = 30
     path                = "/_healthcheck_collections-publisher"
     matcher             = "200-399"
-    port                = "traffic-port"
-    protocol            = "HTTP"
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    timeout             = 5
   }
 }
 
@@ -333,7 +375,545 @@ resource "aws_autoscaling_attachment" "collections-publisher" {
   alb_target_group_arn   = "${aws_lb_target_group.collections-publisher.arn}"
 }
 
-# TODO: add TGs and ASG attachments for the rest of the services from backend_public_service_cnames and app_service_records (without duplicates).
+resource "aws_lb_target_group" "contacts-admin" {
+  name     = "backend-contacts-admin"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_contacts-admin"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "contacts-admin" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.contacts-admin.arn}"
+}
+
+resource "aws_lb_target_group" "content-data-admin" {
+  name     = "backend-content-data-admin"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_content-data-admin"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "content-data-admin" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.content-data-admin.arn}"
+}
+
+resource "aws_lb_target_group" "content-data-api" {
+  name     = "backend-content-data-api"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_content-data-api"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "content-data-api" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.content-data-api.arn}"
+}
+
+resource "aws_lb_target_group" "content-performance-manager" {
+  name     = "backend-content-performance-mgr"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_content-performance-manager"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "content-performance-manager" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.content-performance-manager.arn}"
+}
+
+resource "aws_lb_target_group" "content-publisher" {
+  name     = "backend-content-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_content-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "content-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.content-publisher.arn}"
+}
+
+resource "aws_lb_target_group" "content-tagger" {
+  name     = "backend-content-tagger"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_content-tagger"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "content-tagger" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.content-tagger.arn}"
+}
+
+resource "aws_lb_target_group" "docs" {
+  name     = "backend-docs"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_docs"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "docs" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.docs.arn}"
+}
+
+resource "aws_lb_target_group" "event-store" {
+  name     = "backend-event-store"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_event-store"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "event-store" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.event-store.arn}"
+}
+
+resource "aws_lb_target_group" "hmrc-manuals-api" {
+  name     = "backend-hmrc-manuals-api"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_hmrc-manuals-api"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "hmrc-manuals-api" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.hmrc-manuals-api.arn}"
+}
+
+resource "aws_lb_target_group" "imminence" {
+  name     = "backend-imminence"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_imminence"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "imminence" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.imminence.arn}"
+}
+
+resource "aws_lb_target_group" "link-checker-api" {
+  name     = "backend-link-checker-api"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_link-checker-api"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "link-checker-api" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.link-checker-api.arn}"
+}
+
+resource "aws_lb_target_group" "local-links-manager" {
+  name     = "backend-local-links-manager"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_local-links-manager"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "local-links-manager" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.local-links-manager.arn}"
+}
+
+resource "aws_lb_target_group" "manuals-publisher" {
+  name     = "backend-manuals-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_manuals-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "manuals-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.manuals-publisher.arn}"
+}
+
+resource "aws_lb_target_group" "maslow" {
+  name     = "backend-maslow"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_maslow"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "maslow" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.maslow.arn}"
+}
+
+resource "aws_lb_target_group" "performanceplatform-admin" {
+  name     = "backend-performanceplatform-adm"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_performanceplatform-admin"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "performanceplatform-admin" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.performanceplatform-admin.arn}"
+}
+
+resource "aws_lb_target_group" "policy-publisher" {
+  name     = "backend-policy-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_policy-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "policy-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.policy-publisher.arn}"
+}
+
+resource "aws_lb_target_group" "publisher" {
+  name     = "backend-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.publisher.arn}"
+}
+
+resource "aws_lb_target_group" "release" {
+  name     = "backend-release"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_release"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "release" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.release.arn}"
+}
+
+resource "aws_lb_target_group" "search-admin" {
+  name     = "backend-search-admin"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_search-admin"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "search-admin" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.search-admin.arn}"
+}
+
+resource "aws_lb_target_group" "service-manual-publisher" {
+  name     = "backend-service-manual-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_service-manual-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "service-manual-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.service-manual-publisher.arn}"
+}
+
+resource "aws_lb_target_group" "short-url-manager" {
+  name     = "backend-short-url-manager"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_short-url-manager"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "short-url-manager" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.short-url-manager.arn}"
+}
+
+resource "aws_lb_target_group" "signon" {
+  name     = "backend-signon"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_signon"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "signon" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.signon.arn}"
+}
+
+resource "aws_lb_target_group" "specialist-publisher" {
+  name     = "backend-specialist-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_specialist-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "specialist-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.specialist-publisher.arn}"
+}
+
+resource "aws_lb_target_group" "support-api" {
+  name     = "backend-support-api"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_support-api"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "support-api" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.support-api.arn}"
+}
+
+resource "aws_lb_target_group" "support" {
+  name     = "backend-support"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_support"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "support" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.support.arn}"
+}
+
+resource "aws_lb_target_group" "transition" {
+  name     = "backend-transition"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_transition"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "transition" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.transition.arn}"
+}
+
+resource "aws_lb_target_group" "travel-advice-publisher" {
+  name     = "backend-travel-advice-publisher"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${data.terraform_remote_state.infra_vpc.vpc_id}"
+  tags     = "${local.common_tags}"
+
+  health_check {
+    path                = "/_healthcheck_travel-advice-publisher"
+    matcher             = "200-399"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_autoscaling_attachment" "travel-advice-publisher" {
+  autoscaling_group_name = "${module.backend.autoscaling_group_name}"
+  alb_target_group_arn   = "${aws_lb_target_group.travel-advice-publisher.arn}"
+}
 
 #
 # LB listener rules and CNAME records for services on internal LB.
