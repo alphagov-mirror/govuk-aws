@@ -215,11 +215,6 @@ module "public_lb" {
   default_tags    = "${local.common_tags}"
 }
 
-# TODO: return 400 when hostname is unknown
-# (https://tools.ietf.org/html/rfc7230#section-5.4). This is important to
-# ensure that there is no L7 ingress to internal-only "backend" apps from the
-# Internet.
-
 resource "aws_wafregional_web_acl_association" "public_lb" {
   resource_arn = "${module.public_lb.lb_id}"
   web_acl_id   = "${data.terraform_remote_state.infra_public_services.default_waf_acl}"
@@ -2265,4 +2260,42 @@ resource "aws_route53_record" "travel-advice-publisher-external" {
   type    = "CNAME"
   records = ["${aws_route53_record.public_lb_alias.fqdn}"]
   ttl     = "300"
+}
+
+# Return 400 when host is unknown. This is to ensure that there is no L7
+# ingress to internal-only "backend" apps from the Internet. Ideally we would
+# make this the default listener action rather than another rule, but our
+# "aws/lb" module makes that impossible without a major refactoring.
+#
+# 400 Bad Request is the standard response for a bad Host header field-value.
+# https://tools.ietf.org/html/rfc7230#section-5.4
+#
+# TODO: refactor our "aws/lb" module so that we can use the default listener
+# action, which would be a cleaner and less surprising way to achieve this.
+
+resource "aws_lb_listener_rule" "reject-requests-to-unknown-hosts-external" {
+  listener_arn = "${module.public_lb.load_balancer_ssl_listeners[0]}"
+
+  # This rule needs to have the lowest precedence (highest priority number).
+  priority = 49000
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "400 Bad Request (unknown host)"
+      status_code  = "400"
+    }
+  }
+
+  # This is just a match-all condition. It's only here because AWS requires at
+  # least one condition and doesn't allow an empty condition (because you're
+  # supposed to use the default listener action, but we can't because of our
+  # "aws/lb" module).
+  condition {
+    source_ip {
+      values = ["0.0.0.0/0", "::/0"]
+    }
+  }
 }
