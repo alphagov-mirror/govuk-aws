@@ -935,7 +935,7 @@ resource "aws_lb_listener_rule" "asset-manager-internal" {
   }
 }
 
-resource "aws_route53_record" "internal_lb_cname_asset_manager" {
+resource "aws_route53_record" "asset-manager-internal" {
   zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
   name    = "asset-manager"
   type    = "CNAME"
@@ -943,7 +943,725 @@ resource "aws_route53_record" "internal_lb_cname_asset_manager" {
   ttl     = "300"
 }
 
-# TODO: add listener rules and CNAMEs for the rest of the app_service_records services.
+resource "aws_lb_listener_rule" "backdrop-admin-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.backdrop-admin.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["backdrop-admin.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "backdrop-admin-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "backdrop-admin"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "canary-backend-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 300
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.canary-backend.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["canary-backend.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "canary-backend-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "canary-backend"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "collections-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 400
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.collections-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["collections-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "collections-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "collections-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "contacts-admin-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 500
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.contacts-admin.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["contacts-admin.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "contacts-admin-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "contacts-admin"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "content-data-admin-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 600
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.content-data-admin.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["content-data-admin.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "content-data-admin-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "content-data-admin"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "content-data-api-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 700
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.content-data-api.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["content-data-api.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "content-data-api-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "content-data-api"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "content-performance-manager-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 800
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.content-performance-manager.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["content-performance-manager.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "content-performance-manager-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "content-performance-manager"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "content-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 900
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.content-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["content-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "content-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "content-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "content-tagger-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1000
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.content-tagger.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["content-tagger.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "content-tagger-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "content-tagger"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "docs-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1100
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.docs.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["docs.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "docs-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "docs"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "event-store-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1200
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.event-store.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["event-store.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "event-store-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "event-store"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "hmrc-manuals-api-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1300
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.hmrc-manuals-api.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["hmrc-manuals-api.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "hmrc-manuals-api-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "hmrc-manuals-api"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "imminence-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1400
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.imminence.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["imminence.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "imminence-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "imminence"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "link-checker-api-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1500
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.link-checker-api.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["link-checker-api.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "link-checker-api-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "link-checker-api"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "local-links-manager-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1600
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.local-links-manager.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["local-links-manager.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "local-links-manager-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "local-links-manager"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "manuals-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1700
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.manuals-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["manuals-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "manuals-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "manuals-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "maslow-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1800
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.maslow.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["maslow.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "maslow-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "maslow"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "performanceplatform-admin-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 1900
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.performanceplatform-admin.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["performanceplatform-admin.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "performanceplatform-admin-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "performanceplatform-admin"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "policy-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2000
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.policy-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["policy-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "policy-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "policy-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2100
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "release-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2200
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.release.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["release.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "release-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "release"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "search-admin-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2300
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.search-admin.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["search-admin.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "search-admin-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "search-admin"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "service-manual-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2400
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.service-manual-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["service-manual-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "service-manual-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "service-manual-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "short-url-manager-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2500
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.short-url-manager.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["short-url-manager.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "short-url-manager-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "short-url-manager"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "signon-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2600
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.signon.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["signon.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "signon-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "signon"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "specialist-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2700
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.specialist-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["specialist-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "specialist-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "specialist-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "support-api-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2800
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.support-api.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["support-api.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "support-api-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "support-api"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "support-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 2900
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.support.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["support.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "support-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "support"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "transition-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 3000
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.transition.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["transition.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "transition-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "transition"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
+
+resource "aws_lb_listener_rule" "travel-advice-publisher-internal" {
+  listener_arn = "${module.internal_lb.load_balancer_ssl_listeners[0]}"
+  priority     = 3100
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.travel-advice-publisher.arn}"
+  }
+
+  condition {
+    host_header {
+      values = ["travel-advice-publisher.*"]
+    }
+  }
+}
+
+resource "aws_route53_record" "travel-advice-publisher-internal" {
+  zone_id = "${data.terraform_remote_state.infra_root_dns_zones.internal_root_zone_id}"
+  name    = "travel-advice-publisher"
+  type    = "CNAME"
+  records = ["${aws_route53_record.internal_lb_alias.fqdn}"]
+  ttl     = "300"
+}
 
 #
 # LB listener rules and CNAME records for services on public (external) LB.
@@ -965,7 +1683,7 @@ resource "aws_lb_listener_rule" "collections-publisher-external" {
   }
 }
 
-resource "aws_route53_record" "public_lb_cname_collections_publisher" {
+resource "aws_route53_record" "collections-publisher-external" {
   zone_id = "${data.terraform_remote_state.infra_root_dns_zones.external_root_zone_id}"
   name    = "collections-publisher"
   type    = "CNAME"
