@@ -1745,7 +1745,10 @@ resource "aws_lb_listener_rule" "content-data-admin-external" {
 
   condition {
     host_header {
-      values = ["content-data-admin.*"]
+      # content-data-admin is accessed via both
+      # content-data-admin.publishing.service.gov.uk and
+      # content-data.publishing.service.gov.uk. The latter is canonical.
+      values = ["content-data-admin.*", "content-data.*"]
     }
   }
 }
