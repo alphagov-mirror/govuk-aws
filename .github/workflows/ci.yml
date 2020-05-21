@@ -1,13 +1,11 @@
-name: govuk-aws-linting
 on: [push, pull_request]
 jobs:
-  lint:
-    runs-on: macos-latest
+  test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: bundle install
-        run: bundle install
+      - uses: ruby/setup-ruby@v1
+      - run: bundle install
 
       - name: Docs Check
         run: |
