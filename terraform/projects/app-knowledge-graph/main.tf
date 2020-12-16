@@ -148,6 +148,18 @@ data "aws_iam_policy_document" "read_write_data_infrastructure_bucket_policy_doc
   }
 }
 
+data "aws_iam_policy_document" "invoke_sagemaker_govner_endpoint_policy_document" {
+  statement {
+    actions = [
+      "sagemaker:InvokeEndpoint",
+    ]
+
+    resources = [
+      "arn:aws:sagemaker:eu-west-1:${data.aws_caller_identity.current.account_id}:endpoint/govner-endpoint",
+    ]
+  }
+}
+
 resource "aws_iam_policy" "knowledge-graph_register_instance_with_elb_policy" {
   name   = "knowledge-graph_register_instance_with_elb_policy"
   policy = "${data.aws_iam_policy_document.knowledge-graph_register_instance_with_elb_policy_document.json}"
@@ -163,6 +175,11 @@ resource "aws_iam_policy" "read_write_data_infrastructure_bucket_policy" {
   policy = "${data.aws_iam_policy_document.read_write_data_infrastructure_bucket_policy_document.json}"
 }
 
+resource "aws_iam_policy" "invoke_sagemaker_govner_endpoint_policy" {
+  name   = "invoke_sagemaker_govner_endpoint_policy"
+  policy = "${data.aws_iam_policy_document.invoke_sagemaker_govner_endpoint_policy_document.json}"
+}
+
 resource "aws_iam_role_policy_attachment" "knowledge-graph_register_instance_with_elb_role_attachment" {
   role       = "${aws_iam_role.knowledge-graph_role.name}"
   policy_arn = "${aws_iam_policy.knowledge-graph_register_instance_with_elb_policy.arn}"
@@ -176,6 +193,11 @@ resource "aws_iam_role_policy_attachment" "knowledge-graph_read_ssm_role_attachm
 resource "aws_iam_role_policy_attachment" "read_write_data_infrastructure_bucket_role_attachment" {
   role       = "${aws_iam_role.knowledge-graph_role.name}"
   policy_arn = "${aws_iam_policy.read_write_data_infrastructure_bucket_policy.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "invoke_sagemaker_govner_endpoint_role_attachment" {
+  role       = "${aws_iam_role.knowledge-graph_role.name}"
+  policy_arn = "${aws_iam_policy.invoke_sagemaker_govner_endpoint_policy.arn}"
 }
 
 resource "aws_iam_role_policy_attachment" "knowledge-graph_read_content_store_backups_bucket_role_attachment" {
