@@ -93,8 +93,8 @@ data "aws_iam_policy_document" "invoke_feedback_pipelines_lambda_policy_document
     ]
 
     resources = [
-      "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function/smart-survey-data-pipeline",
-      "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function/zendesk-data-pipeline",
+      "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function:smart-survey-data-pipeline",
+      "arn:aws:lambda:eu-west-1:${data.aws_caller_identity.current.account_id}:function:zendesk-data-pipeline",
     ]
   }
 }
