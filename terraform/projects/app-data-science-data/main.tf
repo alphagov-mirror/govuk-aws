@@ -89,7 +89,7 @@ data "aws_iam_policy_document" "invoke_sagemaker_govner_endpoint_policy_document
 data "aws_iam_policy_document" "invoke_feedback_pipelines_lambda_policy_document" {
   statement {
     actions = [
-      "lambda:lambda:InvokeFunction",
+      "lambda:InvokeFunction",
     ]
 
     resources = [
