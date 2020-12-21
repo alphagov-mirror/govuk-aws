@@ -99,6 +99,23 @@ data "aws_iam_policy_document" "invoke_feedback_pipelines_lambda_policy_document
   }
 }
 
+data "aws_iam_policy_document" "zendesk_data_pipeline_read_ssm_policy_document" {
+  statement {
+    actions = [
+      "ssm:GetParameter",
+    ]
+
+    resources = [
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_big_query_data_service_user_key_file",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_zendesk_pipeline_bigquery_dataset",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_zendesk_pipeline_bigquery_project",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_zendesk_pipeline_bigquery_tablename",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_zendesk_pipeline_zendesk_password",
+      "arn:aws:ssm:eu-west-1:${data.aws_caller_identity.current.account_id}:parameter/govuk_zendesk_pipeline_zendesk_username",
+    ]
+  }
+}
+
 resource "aws_iam_policy" "data-science-data_read_ssm_policy" {
   name   = "data-science-data_read_ssm_policy"
   policy = "${data.aws_iam_policy_document.data-science-data_read_ssm_policy_document.json}"
@@ -112,6 +129,11 @@ resource "aws_iam_policy" "invoke_sagemaker_govner_endpoint_policy" {
 resource "aws_iam_policy" "invoke_feedback_pipelines_lambda_policy" {
   name   = "invoke_feedback_pipelines_lambda_policy"
   policy = "${data.aws_iam_policy_document.invoke_feedback_pipelines_lambda_policy_document.json}"
+}
+
+resource "aws_iam_policy" "zendesk_data_pipeline_read_ssm_policy" {
+  name   = "zendesk_data_pipeline_read_ssm_policy"
+  policy = "${data.aws_iam_policy_document.zendesk_data_pipeline_read_ssm_policy_document.json}"
 }
 
 resource "aws_iam_role_policy_attachment" "data-science-data_read_ssm_role_attachment" {
