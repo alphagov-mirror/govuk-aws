@@ -108,7 +108,7 @@ variable "ssh_public_key" {
 
 terraform {
   backend          "s3"             {}
-  required_version = "= 0.11.14"
+  required_version = "= 0.12.30"
 }
 
 provider "aws" {
